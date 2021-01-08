@@ -50,8 +50,11 @@ class Player2(pygame.sprite.Sprite):
                                       self.rect.x, self.rect.y)
 
     def A_I(self):
-        global runA_I
-        if player1.rect.x + 100 < self.rect.x:
+        global runA_I, handmediumA_I
+        if self.rect.x - player1.rect.x <= 40:
+            handmediumA_I = True
+            runA_I = False
+        if player1.rect.x + 30 < self.rect.x:
             runA_I = True
         else:
             runA_I = False
@@ -76,6 +79,8 @@ class Player2(pygame.sprite.Sprite):
             col = (0, 0, 0)
         if runA_I:
              self.run()
+        elif handmediumA_I:
+            self.handmedium()
         else:
             animCount2 = 0
             self.image = self.ninjastay.otris(False)
@@ -127,6 +132,8 @@ class G_Player(pygame.sprite.Sprite):
         self.ninjastay = AnimatedSprite(load_image("stay.png"), 1, 1, self.rect.x, self.rect.y)
         self.ninjahm = AnimatedSprite(load_image("handmedium.png"), 1, 1, self.rect.x, self.rect.y)
         self.ninjahh = AnimatedSprite(load_image("handhigh.png"), 1, 1, self.rect.x, self.rect.y)
+        self.ninjasit = AnimatedSprite(load_image("sit.png"), 1, 1, self.rect.x, self.rect.y)
+        self.ninjasithandmedium = AnimatedSprite(load_image("sithandmedium.png"), 1, 1, self.rect.x, self.rect.y)
 
     def run(self, reverse):
         self.image = self.ninjarun.otris(reverse)
@@ -151,6 +158,17 @@ class G_Player(pygame.sprite.Sprite):
         self.image = self.ninjahh.otris(False)
         animCount1 += 1
 
+    def sithandmedium(self):
+        global animCount1, handmedium1
+        if animCount1 >= 10:
+            handmedium1 = False
+            animCount1 = 0
+        self.image = self.ninjasithandmedium.otris(False)
+        animCount1 += 1
+
+    def sit(self):
+        self.image = self.ninjasit.otris(False)
+
     def update(self):
         global col, animCount1
         if pygame.sprite.collide_mask(self, player2):
@@ -161,6 +179,11 @@ class G_Player(pygame.sprite.Sprite):
             self.run(False)
         elif run2:
             self.run(True)
+        elif sit:
+            if handmedium1:
+                self.sithandmedium()
+            else:
+                self.sit()
         elif handmedium1:
             self.handmedium()
         elif handmhigh1:
@@ -172,7 +195,7 @@ class G_Player(pygame.sprite.Sprite):
 
 
 if __name__ == '__main__':
-    run1, run2, handmhigh1, handmedium1, runA_I = False, False, False, False, False
+    run1, run2, handmhigh1, handmedium1, runA_I, sit, handmediumA_I = False, False, False, False, False, False, False
     running = True
     player1 = G_Player((x1, y1))
     player2 = Player2((x2, y2))
@@ -188,7 +211,7 @@ if __name__ == '__main__':
                 if event.key == pygame.K_UP:
                     pass
                 if event.key == pygame.K_DOWN:
-                    pass
+                    sit = True
                 if event.key == pygame.K_KP1:
                     handmedium1 = True
                     handmhigh1 = False
@@ -209,7 +232,9 @@ if __name__ == '__main__':
                 if event.key == pygame.K_UP:
                     pass
                 if event.key == pygame.K_DOWN:
-                    pass
+                    animCount1 = 0
+                    sit = False
+                    handmhigh1 = False
         player2.A_I()
         all_sprites.update()
         screen.fill(col)
