@@ -13,6 +13,24 @@ col = (0, 0, 0)
 animCount1 = 0
 animCount2 = 0
 animCount = 0
+otkat = 0
+
+
+def zalypa(name, r):
+    if r:
+        return pygame.transform.flip(load_image(name), True, False)
+    else:
+        return load_image(name)
+
+
+def razvorot(r):
+    ninjarun = AnimatedSprite(zalypa("run.png", r), 6, 1, 0, 0)
+    ninjastay = AnimatedSprite(zalypa("stay.png", r), 1, 1, 0, 0)
+    ninjahm = AnimatedSprite(zalypa("handmedium.png", r), 1, 1, 0, 0)
+    ninjahh = AnimatedSprite(zalypa("handhigh.png", r), 1, 1, 0, 0)
+    ninjasit = AnimatedSprite(zalypa("sit.png", r), 1, 1, 0, 0)
+    ninjasithandmedium = AnimatedSprite(zalypa("sithandmedium.png", r), 1, 1, 0, 0)
+    return ninjarun, ninjastay, ninjahm, ninjahh, ninjasit, ninjasithandmedium
 
 
 def load_image(name, colorkey=None):
@@ -30,61 +48,6 @@ def load_image(name, colorkey=None):
     else:
         image = image.convert_alpha()
     return image
-
-
-class Player2(pygame.sprite.Sprite):
-    imagestay = load_image('stay.png')
-
-    def __init__(self, pos):
-        super().__init__(all_sprites)
-        self.image = Player2.imagestay
-        self.rect = self.image.get_rect()
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = pos[0]
-        self.rect.y = pos[1]
-        self.ninjarun = AnimatedSprite(pygame.transform.flip(load_image("run.png"), True, False), 6, 1,
-                                       self.rect.x, self.rect.y)
-        self.ninjastay = AnimatedSprite(pygame.transform.flip(load_image("stay.png"), True, False), 1, 1,
-                                        self.rect.x, self.rect.y)
-        self.ninjahm = AnimatedSprite(pygame.transform.flip(load_image("handmedium.png"), True, False), 1, 1,
-                                      self.rect.x, self.rect.y)
-
-    def A_I(self):
-        global runA_I, handmediumA_I
-        if self.rect.x - player1.rect.x <= 40:
-            handmediumA_I = True
-            runA_I = False
-        if player1.rect.x + 30 < self.rect.x:
-            runA_I = True
-        else:
-            runA_I = False
-
-    def run(self):
-        self.image = self.ninjarun.otris(True)
-        self.rect = self.rect.move(-5, 0)
-
-    def handmedium(self):
-        global animCount2, handmedium2
-        if animCount2 >= 10:
-            handmedium2 = False
-            animCount2 = 0
-        self.image = self.ninjahm.otris(False)
-        animCount2 += 1
-
-    def update(self):
-        global col, animCount2
-        if pygame.sprite.collide_mask(self, player1):
-            col = (255, 255, 255)
-        else:
-            col = (0, 0, 0)
-        if runA_I:
-             self.run()
-        elif handmediumA_I:
-            self.handmedium()
-        else:
-            animCount2 = 0
-            self.image = self.ninjastay.otris(False)
-        self.mask = pygame.mask.from_surface(self.image)
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -118,6 +81,60 @@ class AnimatedSprite(pygame.sprite.Sprite):
         return self.frames[self.cur_frame]
 
 
+class Player2(pygame.sprite.Sprite):
+    imagestay = load_image('stay.png')
+
+    def __init__(self, pos):
+        super().__init__(all_sprites)
+        self.image = Player2.imagestay
+        self.rect = self.image.get_rect()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium = razvorot(True)
+
+    def A_I(self):
+        global runA_I, handmediumA_I, otkat
+        if otkat == 0:
+            if 40 >= self.rect.x - player1.rect.x > 0:
+                handmediumA_I = True
+                otkat = 30
+                runA_I = False
+        else:
+            otkat -= 1
+        if player1.rect.x + 30 < self.rect.x:
+            runA_I = True
+        else:
+            runA_I = False
+
+    def run(self):
+        self.image = self.ninjarun.otris(True)
+        self.rect = self.rect.move(-5, 0)
+
+    def handmedium(self):
+        global animCount2, handmediumA_I
+        if animCount2 >= 10:
+            handmediumA_I = False
+            animCount2 = 0
+        self.image = self.ninjahm.otris(False)
+        animCount2 += 1
+
+    def update(self):
+        global col, animCount2
+        if pygame.sprite.collide_mask(self, player1):
+            col = (255, 255, 255)
+        else:
+            col = (0, 0, 0)
+        if runA_I:
+             self.run()
+        elif handmediumA_I:
+            self.handmedium()
+        else:
+            animCount2 = 0
+            self.image = self.ninjastay.otris(False)
+        self.mask = pygame.mask.from_surface(self.image)
+
+
 class G_Player(pygame.sprite.Sprite):
     imagestay = load_image('stay.png')
 
@@ -128,12 +145,7 @@ class G_Player(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
         self.rect.x = pos[0]
         self.rect.y = pos[1]
-        self.ninjarun = AnimatedSprite(load_image("run.png"), 6, 1, self.rect.x, self.rect.y)
-        self.ninjastay = AnimatedSprite(load_image("stay.png"), 1, 1, self.rect.x, self.rect.y)
-        self.ninjahm = AnimatedSprite(load_image("handmedium.png"), 1, 1, self.rect.x, self.rect.y)
-        self.ninjahh = AnimatedSprite(load_image("handhigh.png"), 1, 1, self.rect.x, self.rect.y)
-        self.ninjasit = AnimatedSprite(load_image("sit.png"), 1, 1, self.rect.x, self.rect.y)
-        self.ninjasithandmedium = AnimatedSprite(load_image("sithandmedium.png"), 1, 1, self.rect.x, self.rect.y)
+        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium = razvorot(False)
 
     def run(self, reverse):
         self.image = self.ninjarun.otris(reverse)
@@ -175,9 +187,9 @@ class G_Player(pygame.sprite.Sprite):
             col = (255, 255, 255)
         else:
             col = (0, 0, 0)
-        if run1:
+        if run1 and self.rect.x + 40 < player2.rect.x:
             self.run(False)
-        elif run2:
+        elif run2 and self.rect.x - 40 < player2.rect.x:
             self.run(True)
         elif sit:
             if handmedium1:
