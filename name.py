@@ -102,12 +102,6 @@ class G_Player(pygame.sprite.Sprite):
         self.activno = None
         self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, self.ninjajump = razvorot(left)
 
-    def set_otkat(self, otkatt):
-        self.otkat = otkatt
-
-    def set_otkatjump(self, otkat):
-        self.otkatjump = otkat
-
     def set_protivnik(self, protivnik):
         self.protivnik = protivnik
 
@@ -197,23 +191,23 @@ class G_Player(pygame.sprite.Sprite):
                     animCount = 0
                     jump1 = True
                     activnosti = True
-                    player1.set_otkatjump(120)
+                    player1.otkatjump = 120
                 if event.key == pygame.K_DOWN and not activnosti:
                     player1.sit()
                     sit = True
                     jump1 = False
                     activnosti = True
-                    player1.set_otkat(30)
+                    player1.otkat = 30
                 if event.key == pygame.K_KP1 and not activnosti or event.key == pygame.K_KP1 and activnosti and sit:
                     animCount = 0
                     handmedium1 = True
                     activnosti = True
-                    player1.set_otkat(40)
+                    player1.otkat = 40
                 if event.key == pygame.K_KP3 and not activnosti:
                     animCount = 0
                     handmhigh1 = True
                     activnosti = True
-                    player1.set_otkat(50)
+                    player1.otkat = 50
         if player1.otkat > 0:
             player1.otkat -= 1
         if player1.otkatjump > 0:
