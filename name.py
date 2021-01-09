@@ -5,15 +5,16 @@ all_sprites = pygame.sprite.Group()
 all_spritess = pygame.sprite.Group()
 clock = pygame.time.Clock()
 pygame.init()
-size = width, height = 500, 500
+size = width, height = 600, 500
 screen = pygame.display.set_mode(size)
-x1, y1, x2, y2 = 0, 100, 400, 100
+x1, y1, x2, y2 = 100, 100, 400, 100
 fps = 30
 col = (0, 0, 0)
 animCount1 = 0
 animCount2 = 0
 animCount = 0
-otkat = 0
+gg = 0
+activno = None
 
 
 def zalypa(name, r):
@@ -30,7 +31,8 @@ def razvorot(r):
     ninjahh = AnimatedSprite(zalypa("handhigh.png", r), 1, 1, 0, 0)
     ninjasit = AnimatedSprite(zalypa("sit.png", r), 1, 1, 0, 0)
     ninjasithandmedium = AnimatedSprite(zalypa("sithandmedium.png", r), 1, 1, 0, 0)
-    return ninjarun, ninjastay, ninjahm, ninjahh, ninjasit, ninjasithandmedium
+    ninjajump = AnimatedSprite(zalypa("jump.png", r), 5, 1, 0, 0)
+    return ninjarun, ninjastay, ninjahm, ninjahh, ninjasit, ninjasithandmedium, ninjajump
 
 
 def load_image(name, colorkey=None):
@@ -68,87 +70,63 @@ class AnimatedSprite(pygame.sprite.Sprite):
                 self.frames.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    def otris(self, reverse):
-        global animCount
+    def otris(self, reverse, kadrov):
+        global animCount, gg
         if animCount + 1 >= 30:
             animCount = 0
-        if animCount % 5 == 0:
+            gg = 0
+        if animCount // kadrov != gg:
             if reverse:
-                self.cur_frame = (self.cur_frame - 1) % len(self.frames)
+                gg = len(self.frames) - animCount // 5
             else:
-                self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+                gg = animCount // 5
         animCount += 1
-        return self.frames[self.cur_frame]
-
-
-class Player2(pygame.sprite.Sprite):
-    imagestay = load_image('stay.png')
-
-    def __init__(self, pos):
-        super().__init__(all_sprites)
-        self.image = Player2.imagestay
-        self.rect = self.image.get_rect()
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x = pos[0]
-        self.rect.y = pos[1]
-        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium = razvorot(True)
-
-    def A_I(self):
-        global runA_I, handmediumA_I, otkat
-        if otkat == 0:
-            if 40 >= self.rect.x - player1.rect.x > 0:
-                handmediumA_I = True
-                otkat = 30
-                runA_I = False
-        else:
-            otkat -= 1
-        if player1.rect.x + 30 < self.rect.x:
-            runA_I = True
-        else:
-            runA_I = False
-
-    def run(self):
-        self.image = self.ninjarun.otris(True)
-        self.rect = self.rect.move(-5, 0)
-
-    def handmedium(self):
-        global animCount2, handmediumA_I
-        if animCount2 >= 10:
-            handmediumA_I = False
-            animCount2 = 0
-        self.image = self.ninjahm.otris(False)
-        animCount2 += 1
-
-    def update(self):
-        global col, animCount2
-        if pygame.sprite.collide_mask(self, player1):
-            col = (255, 255, 255)
-        else:
-            col = (0, 0, 0)
-        if runA_I:
-             self.run()
-        elif handmediumA_I:
-            self.handmedium()
-        else:
-            animCount2 = 0
-            self.image = self.ninjastay.otris(False)
-        self.mask = pygame.mask.from_surface(self.image)
+        if gg > len(self.frames) - 1:
+            gg = 0
+        return self.frames[gg]
 
 
 class G_Player(pygame.sprite.Sprite):
     imagestay = load_image('stay.png')
 
-    def __init__(self, pos):
+    def __init__(self, pos, left):
         super().__init__(all_sprites)
         self.image = G_Player.imagestay
         self.rect = self.image.get_rect()
         self.mask = pygame.mask.from_surface(self.image)
         self.rect.x = pos[0]
         self.rect.y = pos[1]
-        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium = razvorot(False)
+        self.otkat = 0
+        self.otkatjump = 0
+        self.protivnik = None
+        self.activno = None
+        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, self.ninjajump = razvorot(left)
+
+    def set_otkat(self, otkatt):
+        self.otkat = otkatt
+
+    def set_otkatjump(self, otkat):
+        self.otkatjump = otkat
+
+    def set_protivnik(self, protivnik):
+        self.protivnik = protivnik
+
+    def A_I(self):
+        global runA_I, handmediumA_I, otkat
+        if otkat == 0:
+            if 40 >= self.rect.x - player1.rect.x > 0:
+                player2.handmedium()
+                otkat = 30
+                player2.stay()
+        else:
+            otkat -= 1
+        if player1.rect.x + 30 < player2.rect.x:
+            player2.run(True)
+        else:
+            player2.stay()
 
     def run(self, reverse):
-        self.image = self.ninjarun.otris(reverse)
+        self.image = self.ninjarun.otris(reverse, 5)
         if reverse:
             self.rect = self.rect.move(-5, 0)
         else:
@@ -156,101 +134,132 @@ class G_Player(pygame.sprite.Sprite):
 
     def handmedium(self):
         global animCount1, handmedium1
-        if animCount1 >= 10:
+        self.image = self.ninjahm.otris(False, 30)
+        if animCount1 >= 20:
             handmedium1 = False
             animCount1 = 0
-        self.image = self.ninjahm.otris(False)
+            player1.stay()
         animCount1 += 1
 
     def handmhigh(self):
         global animCount1, handmhigh1
-        if animCount1 >= 10:
+
+        self.image = self.ninjahh.otris(False, 30)
+        if animCount1 >= 20:
             handmhigh1 = False
             animCount1 = 0
-        self.image = self.ninjahh.otris(False)
+            player1.stay()
         animCount1 += 1
 
     def sithandmedium(self):
         global animCount1, handmedium1
-        if animCount1 >= 10:
+        self.image = self.ninjasithandmedium.otris(False, 30)
+        if animCount1 >= 20:
             handmedium1 = False
             animCount1 = 0
-        self.image = self.ninjasithandmedium.otris(False)
+            player1.sit()
         animCount1 += 1
 
+    def stay(self):
+        global animCount, activnosti
+        animCount = 0
+        self.image = self.ninjastay.otris(False, 30)
+        animCount = 0
+        activnosti = False
+
     def sit(self):
-        self.image = self.ninjasit.otris(False)
+        self.image = self.ninjasit.otris(False, 30)
+
+    def jump(self):
+        global animCount1, jump1, activnosti
+        self.image = self.ninjajump.otris(False, 6)
+        self.rect = self.rect.move(10, 0)
+        if animCount // 5 in [1, 2]:
+            self.rect = self.rect.move(0, -10)
+        if animCount // 5 in [3, 4]:
+            self.rect = self.rect.move(0, 10)
+        if animCount1 + 1 >= 30:
+            jump1 = False
+            animCount1 = 0
+            player1.stay()
+            activnosti = False
+        animCount1 += 1
 
     def update(self):
-        global col, animCount1
-        if pygame.sprite.collide_mask(self, player2):
+        global col, animCount1, animCount, handmedium1, handmhigh1, sit, run2, run1, jump1, activnosti, otkat, otkatjump
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT and not activnosti:
+                player1.run(True)
+            if event.key == pygame.K_RIGHT and not activnosti:
+                player1.run(False)
+            if player1.otkat == 0:
+                if event.key == pygame.K_UP and not activnosti and player1.otkatjump == 0:
+                    animCount = 0
+                    jump1 = True
+                    activnosti = True
+                    player1.set_otkatjump(120)
+                if event.key == pygame.K_DOWN and not activnosti:
+                    player1.sit()
+                    sit = True
+                    jump1 = False
+                    activnosti = True
+                    player1.set_otkat(30)
+                if event.key == pygame.K_KP1 and not activnosti or event.key == pygame.K_KP1 and activnosti and sit:
+                    animCount = 0
+                    handmedium1 = True
+                    activnosti = True
+                    player1.set_otkat(40)
+                if event.key == pygame.K_KP3 and not activnosti:
+                    animCount = 0
+                    handmhigh1 = True
+                    activnosti = True
+                    player1.set_otkat(50)
+        if player1.otkat > 0:
+            player1.otkat -= 1
+        if player1.otkatjump > 0:
+            player1.otkatjump -= 1
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT and not activnosti:
+                player1.stay()
+            if event.key == pygame.K_RIGHT and not activnosti:
+                player1.stay()
+            if event.key == pygame.K_UP:
+                pass
+            if event.key == pygame.K_DOWN:
+                player1.stay()
+                sit = False
+                jump1 = False
+        if pygame.sprite.collide_mask(self, self.protivnik):
             col = (255, 255, 255)
         else:
             col = (0, 0, 0)
-        if run1 and self.rect.x + 40 < player2.rect.x:
-            self.run(False)
-        elif run2 and self.rect.x - 40 < player2.rect.x:
-            self.run(True)
-        elif sit:
+        if sit:
             if handmedium1:
-                self.sithandmedium()
+                player1.sithandmedium()
             else:
-                self.sit()
+                player1.sit()
+        elif jump1:
+            player1.jump()
         elif handmedium1:
-            self.handmedium()
+            player1.handmedium()
         elif handmhigh1:
-            self.handmhigh()
-        else:
-            animCount1 = 0
-            self.image = self.ninjastay.otris(False)
+            player1.handmhigh()
         self.mask = pygame.mask.from_surface(self.image)
 
 
 if __name__ == '__main__':
-    run1, run2, handmhigh1, handmedium1, runA_I, sit, handmediumA_I = False, False, False, False, False, False, False
+    run1, run2, handmhigh1, handmedium1, runA_I, sit, handmediumA_I, jump1, activnosti = False, False, False, False, False, False, False, False, False
     running = True
-    player1 = G_Player((x1, y1))
-    player2 = Player2((x2, y2))
+    player1, player2 = G_Player((x1, y1), False), G_Player((x2, y2), True)
+    player1.set_protivnik(player2)
+    player2.set_protivnik(player1)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    run2 = True
-                if event.key == pygame.K_RIGHT:
-                    run1 = True
-                if event.key == pygame.K_UP:
-                    pass
-                if event.key == pygame.K_DOWN:
-                    sit = True
-                if event.key == pygame.K_KP1:
-                    handmedium1 = True
-                    handmhigh1 = False
-                if event.key == pygame.K_KP3:
-                    handmhigh1 = True
-                    handmedium1 = False
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_LEFT:
-                    run2 = False
-                    animCount1 = 0
-                    handmedium1 = False
-                    handmhigh1 = False
-                if event.key == pygame.K_RIGHT:
-                    run1 = False
-                    animCount1 = 0
-                    handmedium1 = False
-                    handmhigh1 = False
-                if event.key == pygame.K_UP:
-                    pass
-                if event.key == pygame.K_DOWN:
-                    animCount1 = 0
-                    sit = False
-                    handmhigh1 = False
-        player2.A_I()
+        # player2.A_I()
         all_sprites.update()
         screen.fill(col)
         all_sprites.draw(screen)
         pygame.display.flip()
         clock.tick(30)
-    pygame.quit()
