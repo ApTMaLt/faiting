@@ -9,13 +9,11 @@ pygame.init()
 size = width, height = 1000, 500
 screen = pygame.display.set_mode(size)
 x1, y1, x2, y2 = 100, 100, 400, 100
-fps = 30
-col = (0, 0, 0)
 gg = 0
 activno = None
-otkat = 0
 screen_rect = (0, 0, width, height)
-GRAVITY = 2
+GRAVITY = 3
+stop = False
 
 
 def zalypa(name, r):
@@ -33,7 +31,8 @@ def razvorot(r):
     ninjasit = AnimatedSprite(zalypa("sit.png", r), 1, 1, 0, 0)
     ninjasithandmedium = AnimatedSprite(zalypa("sithandmedium.png", r), 1, 1, 0, 0)
     ninjajump = AnimatedSprite(zalypa("jump.png", r), 5, 1, 0, 0)
-    return ninjarun, ninjastay, ninjahm, ninjahh, ninjasit, ninjasithandmedium, ninjajump
+    ninjadeafened = AnimatedSprite(zalypa("deafened.png", r), 1, 1, 0, 0)
+    return ninjarun, ninjastay, ninjahm, ninjahh, ninjasit, ninjasithandmedium, ninjajump, ninjadeafened
 
 
 def load_image(name, colorkey=None):
@@ -129,6 +128,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 class G_Player(pygame.sprite.Sprite):
     imagestay = load_image('stay.png')
+    tipi_ydarov = {'hm': '7', 'hh': '10', 'shm': '5',}
 
     def __init__(self, pos, left):
         super().__init__(all_sprites)
@@ -144,31 +144,42 @@ class G_Player(pygame.sprite.Sprite):
         self.left = left
         self.animCount1 = 0
         self.animCount = 0
-        self.run1, self.run2, self.handhigh, self.handmedium, self.runA_I, self.sitt, self.handmediumA_I, self.jump, self.activnosti = False, False, False, False, False, False, False, False, False
-        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, self.ninjajump = razvorot(self.left)
+        self.ydar = False
+        self.healts = 7
+        self.run1, self.run2, self.handhigh, self.handmedium, self.runA_I, self.sitt, self.handmediumA_I, self.jump,\
+        self.activnosti, self.deafened = False, False, False, False, False, False, False, False, False, False
+        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium,\
+        self.ninjajump, self.ninjadeafened = razvorot(self.left)
 
     def obmen(self):
         player1.ninjarun, player1.ninjastay, player1.ninjahm, player1.ninjahh, player1.ninjasit,\
-        player1.ninjasithandmedium, player1.ninjajump, player2.ninjarun, player2.ninjastay, player2.ninjahm,\
-        player2.ninjahh, player2.ninjasit, player2.ninjasithandmedium, player2.ninjajump = player2.ninjarun,\
+        player1.ninjasithandmedium, player1.ninjajump, player1.ninjadeafened, player2.ninjarun, player2.ninjastay, player2.ninjahm,\
+        player2.ninjahh, player2.ninjasit, player2.ninjasithandmedium, player2.ninjajump, player2ninjadeafened = player2.ninjarun,\
         player2.ninjastay, player2.ninjahm, player2.ninjahh, player2.ninjasit, player2.ninjasithandmedium,\
-        player2.ninjajump, player1.ninjarun, player1.ninjastay, player1.ninjahm, player1.ninjahh, player1.ninjasit,\
-        player1.ninjasithandmedium, player1.ninjajump
+        player2.ninjajump, player2.ninjadeafened, player1.ninjarun, player1.ninjastay, player1.ninjahm, player1.ninjahh, player1.ninjasit,\
+        player1.ninjasithandmedium, player1.ninjajump, player1.ninjadeafened
 
     def set_protivnik(self, protivnik):
         self.protivnik = protivnik
 
     def A_I(self):
-        global runA_I, handmediumA_I, otkat
-        if otkat == 0:
+        if player2.otkat == 0:
             if 40 >= self.rect.x - player1.rect.x > 0:
                 player2.player_handmedium()
         else:
-            otkat -= 1
+            player2.otkat -= 1
         if player1.rect.x + 30 < player2.rect.x:
             player2.ninja_run(True)
         else:
             player2.ninja_stay()
+
+    def ninja_deafened(self):
+        self.image, self.animCount = self.ninjadeafened.otris(False, 30, self.animCount)
+        if self.animCount1 >= 20:
+            self.deafened = False
+            self.animCount1 = 0
+            self.ninja_stay()
+        self.animCount1 += 1
 
     def ninja_run(self, reverse):
         self.image, self.animCount = self.ninjarun.otris(reverse, 5, self.animCount)
@@ -182,16 +193,30 @@ class G_Player(pygame.sprite.Sprite):
         if self.animCount1 >= 20:
             self.handmedium = False
             self.animCount1 = 0
+            self.ydar = False
             self.ninja_stay()
         self.animCount1 += 1
+        self.chastici('hm')
+
+    def chastici(self, tip_ydara):
+        if pygame.sprite.collide_mask(self, self.protivnik) and not self.ydar:
+            if random.randint(0, 100) <= 10:
+                create_particles((self.protivnik.rect.x + 10, self.protivnik.rect.y))
+            self.ydar = True
+            ggg = self.tipi_ydarov[tip_ydara]
+            self.protivnik.healts -= int(self.tipi_ydarov[tip_ydara])
+            self.protivnik.deafened = True
+            self.protivnik.ninja_deafened()
 
     def ninja_handmhigh(self):
         self.image, self.animCount = self.ninjahh.otris(False, 30, self.animCount)
         if self.animCount1 >= 20 or self.sitt:
             self.handhigh = False
             self.animCount1 = 0
+            self.ydar = False
             self.ninja_stay()
         self.animCount1 += 1
+        self.chastici('hh')
 
     def ninja_sithandmedium(self):
         self.image, self.animCount = self.ninjasithandmedium.otris(False, 30, self.animCount)
@@ -199,8 +224,10 @@ class G_Player(pygame.sprite.Sprite):
             self.handmedium = False
             self.animCount1 = 0
             self.sitt = True
+            self.ydar = False
             self.ninja_sit()
         self.animCount1 += 1
+        self.chastici('shm')
 
     def ninja_stay(self):
         self.animCount = 0
@@ -236,6 +263,7 @@ class G_Player(pygame.sprite.Sprite):
         self.jump = True
         self.activnosti = True
         self.otkatjump = 120
+        self.otkat = 90
 
     def player_sit(self):
         self.handhigh = False
@@ -261,10 +289,13 @@ class G_Player(pygame.sprite.Sprite):
         self.sitt = False
         self.jump = False
         self.handhigh = False
+        self.activnosti = False
         self.ninja_stay()
 
     def update(self):
-        global col, otkat
+        global col, otkat, stop
+        if self.healts <=0:
+            stop = True
         if player1.rect.x > player2.rect.x and player1.left is False and player2.left is True:
             player1.left = True
             player2.left = False
@@ -283,14 +314,10 @@ class G_Player(pygame.sprite.Sprite):
                     player1.player_jump()
                 if event.key == pygame.K_DOWN and not player1.activnosti:
                     player1.player_sit()
-                if event.key == pygame.K_KP1 and player1.activnosti and self.sitt or event.key == pygame.K_KP1 and not self.activnosti:
+                if event.key == pygame.K_KP1 and player1.activnosti and self.sitt and not self.jump or event.key == pygame.K_KP1 and not self.activnosti:
                     player1.player_handmedium()
                 if event.key == pygame.K_KP3 and not player1.activnosti and not self.sitt:
                     player1.player_handhigh()
-        if player1.otkat > 0:
-            player1.otkat -= 1
-        if player1.otkatjump > 0:
-            player1.otkatjump -= 1
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT and not player1.activnosti:
                 player1.ninja_stay()
@@ -298,17 +325,20 @@ class G_Player(pygame.sprite.Sprite):
                 player1.ninja_stay()
             if event.key == pygame.K_UP:
                 pass
-            if event.key == pygame.K_DOWN:
-                player1.player_dont_sit()
-        if pygame.sprite.collide_mask(self, self.protivnik):
-            create_particles((self.protivnik.rect.x + 10, self.protivnik.rect.y))
-        else:
-            col = (0, 0, 0)
+            if player1.otkat == 0:
+                if event.key == pygame.K_DOWN:
+                    player1.player_dont_sit()
+        if player1.otkat > 0:
+            player1.otkat -= 1
+        if player1.otkatjump > 0:
+            player1.otkatjump -= 1
         if self.sitt:
             if self.handmedium:
                 self.ninja_sithandmedium()
             else:
                 self.ninja_sit()
+        elif self.deafened:
+            self.ninja_deafened()
         elif self.jump:
             self.ninja_jump()
         elif self.handmedium:
@@ -327,12 +357,11 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                # создаём частицы по щелчку мыши
-                create_particles(pygame.mouse.get_pos())
+        if stop:
+            continue
         player2.A_I()
         all_sprites.update()
-        screen.fill(col)
+        screen.fill((0, 0, 0))
         all_sprites.draw(screen)
         pygame.display.flip()
         clock.tick(30)
