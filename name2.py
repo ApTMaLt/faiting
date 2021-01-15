@@ -3,6 +3,7 @@ import pygame
 import os
 import sys
 import random
+
 all_sprites = pygame.sprite.Group()
 all_spritess = pygame.sprite.Group()
 clock = pygame.time.Clock()
@@ -11,14 +12,82 @@ size = width, height = 700, 300
 screen = pygame.display.set_mode(size)
 x1, y1, x2, y2 = 100, 200, 600, 200
 gg = 0
-activno = None
 screen_rect = (0, 0, width, height)
 GRAVITY = 3
 stop = False
 win_round1, win_round2 = 0, 0
-zvyk_ydara = pg.mixer.Sound('data\ydar.mp3')
-pg.mixer.music.load('data\music_bitva.mp3')
+zvyk_ydara = pygame.mixer.Sound('data\ydar.mp3')
+win = pygame.mixer.Sound('data\win.mp3')
+lose = pygame.mixer.Sound('data\lose.mp3')
+pygame.mixer.music.load('data\music_bitva.mp3')
 pygame.mixer.music.play(-1, 0.0)
+stop_game = False
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_screen():
+    global event, rejim_game
+    intro_text = ["- Файтинг -", "", '',
+                  "- Один игрок", '',
+                  "- Выход"]
+    main_fon = pygame.transform.scale(load_image('main_fon.jpg'), (width, height))
+    screen.blit(main_fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('red'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 300
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+    run = True
+    while run:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if 290 < pygame.mouse.get_pos()[0] < 430 and 140 < pygame.mouse.get_pos()[1] < 170:
+                    return
+                elif 290 < pygame.mouse.get_pos()[0] < 430 and 205 < pygame.mouse.get_pos()[1] < 235:
+                    terminate()
+        pygame.display.flip()
+        clock.tick(50)
+
+
+def end(image):
+    pg.mixer.music.set_volume(0)
+    pygame.mixer.pause()
+    all_sprites = pygame.sprite.Group()
+    sprite = pygame.sprite.Sprite()
+    sprite.image = pygame.image.load(os.path.join("data", image))
+    sprite.image = pygame.transform.scale(sprite.image, (700, 300))
+    sprite.rect = sprite.image.get_rect()
+    all_sprites.add(sprite)
+    if image == 'win.jpg':
+        win.play()
+    else:
+        lose.play()
+    sprite.rect.x = -700
+    sprite.rect.y = 0
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+        screen.fill("black")
+        all_sprites.draw(screen)
+        if sprite.rect.x < 0:
+            sprite.rect.x = sprite.rect.x + 4
+        pygame.display.update()
+        clock.tick(30)
+
 
 def povorot(name, r):
     if r:
@@ -87,6 +156,7 @@ class Particle(pygame.sprite.Sprite):
         if not self.rect.colliderect(screen_rect):
             self.kill()
 
+
 def create_particles(position):
     # количество создаваемых частиц
     particle_count = 10
@@ -149,13 +219,14 @@ class G_Player(pygame.sprite.Sprite):
         self.animCount = 0
         self.posledni_deistvia = []
         self.ydar = False
-        self.healts = 7
-        self.run1, self.run2, self.handhigh, self.handmedium, self.runA_I, self.sitt, self.handmediumA_I, self.jump,\
+        self.healts = 100
+        self.run1, self.run2, self.handhigh, self.handmedium, self.runA_I, self.sitt, self.handmediumA_I, self.jump, \
         self.activnosti, self.deafened = False, False, False, False, False, False, False, False, False, False
-        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium,\
+        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, \
         self.ninjajump, self.ninjadeafened = razvorot(self.left)
 
     def start_fight(self, pos, left):
+        # начинает следующий раунд
         self.left = left
         self.rect.x = pos[0]
         self.rect.y = pos[1]
@@ -164,17 +235,21 @@ class G_Player(pygame.sprite.Sprite):
         self.activnosti, self.deafened = False, False, False, False, False, False, False, False, False, False
         self.animCount = 0
         self.ydar = False
-        self.healts = 7
+        self.healts = 100
+        self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, \
+        self.ninjajump, self.ninjadeafened = razvorot(self.left)
 
     def obmen(self):
-        player1.ninjarun, player1.ninjastay, player1.ninjahm, player1.ninjahh, player1.ninjasit,\
-        player1.ninjasithandmedium, player1.ninjajump, player1.ninjadeafened, player2.ninjarun, player2.ninjastay, player2.ninjahm,\
-        player2.ninjahh, player2.ninjasit, player2.ninjasithandmedium, player2.ninjajump, player2.ninjadeafened = player2.ninjarun,\
-        player2.ninjastay, player2.ninjahm, player2.ninjahh, player2.ninjasit, player2.ninjasithandmedium,\
-        player2.ninjajump, player2.ninjadeafened, player1.ninjarun, player1.ninjastay, player1.ninjahm, player1.ninjahh, player1.ninjasit,\
-        player1.ninjasithandmedium, player1.ninjajump, player1.ninjadeafened
+        # обменивает анимации игрока1 и игрока2
+        player1.ninjarun, player1.ninjastay, player1.ninjahm, player1.ninjahh, player1.ninjasit, \
+        player1.ninjasithandmedium, player1.ninjajump, player1.ninjadeafened, player2.ninjarun, player2.ninjastay, player2.ninjahm, \
+        player2.ninjahh, player2.ninjasit, player2.ninjasithandmedium, player2.ninjajump, player2.ninjadeafened = player2.ninjarun, \
+                                                                                                                  player2.ninjastay, player2.ninjahm, player2.ninjahh, player2.ninjasit, player2.ninjasithandmedium, \
+                                                                                                                  player2.ninjajump, player2.ninjadeafened, player1.ninjarun, player1.ninjastay, player1.ninjahm, player1.ninjahh, player1.ninjasit, \
+                                                                                                                  player1.ninjasithandmedium, player1.ninjajump, player1.ninjadeafened
 
     def set_protivnik(self, protivnik):
+        # инициализирует противников
         self.protivnik = protivnik
 
     def A_I(self):
@@ -189,6 +264,7 @@ class G_Player(pygame.sprite.Sprite):
             else:
                 player2.ninja_stay()
         if player2.otkat == 0:
+            # исскуственный интелкт бота
             if self.left:
                 if 20 >= self.rect.x - player1.rect.x > 0 and self.posledni_deistvia.count('hh') != 3:
                     player2.player_handhigh()
@@ -207,6 +283,7 @@ class G_Player(pygame.sprite.Sprite):
             player2.otkat -= 1
 
     def ninja_deafened(self):
+        #  отрисовка анимации стана
         self.handhigh, self.handmedium, self.jump = False, False, False
         self.image, self.animCount = self.ninjadeafened.otris(False, 30, self.animCount)
         if self.animCount == 4:
@@ -216,11 +293,13 @@ class G_Player(pygame.sprite.Sprite):
             self.ninja_stay()
 
     def ninja_run(self, reverse):
+        #  отрисовка анимации бега
         self.image, self.animCount = self.ninjarun.otris(reverse, 5, self.animCount)
         if reverse:
             self.rect = self.rect.move(-5, 0)
         else:
             self.rect = self.rect.move(5, 0)
+        #  проверка на то кто находится с лева а кто справа и обменивает их анимации
         if player1.rect.x > player2.rect.x and player1.left is False and player2.left is True and not player1.jump:
             player1.left = True
             player2.left = False
@@ -231,43 +310,48 @@ class G_Player(pygame.sprite.Sprite):
             self.obmen()
 
     def ninja_handmedium(self):
+        #  отрисовка анимации среднего удара
         if self.left and self.animCount == 1:
             self.rect.x -= 35
         self.image, self.animCount = self.ninjahm.otris(False, 30, self.animCount)
+        #  когда закончить анимацию
         if self.animCount >= 20:
             self.handmedium = False
             self.ydar = False
             if self.left:
                 self.rect.x += 35
             self.ninja_stay()
-        self.chastici('hm')
+        self.chastici('hm')  # обработка попадания и вылетающие частици
 
     def chastici(self, tip_ydara):
+        # пересечение спрайтов
         if pygame.sprite.collide_mask(self, self.protivnik) and not self.ydar:
             ydvaenie = 1
-            if random.randint(0, 100) <= 10:
+            if random.randint(0, 100) <= 10:  # шанс 10% на критический удар
                 create_particles((self.protivnik.rect.x + 10, self.protivnik.rect.y))
                 ydvaenie = 2
             self.ydar = True
-            self.protivnik.healts -= int(self.tipi_ydarov[tip_ydara]) * ydvaenie
+            self.protivnik.healts -= int(self.tipi_ydarov[tip_ydara]) * ydvaenie  # нанесение урона
             self.protivnik.deafened = True
             zvyk_ydara.play()
-            self.protivnik.ninja_deafened()
+            self.protivnik.ninja_deafened()  # противник в стане
 
     def ninja_handmhigh(self):
-        if self.left and self.animCount == 1:
+        # отрисовка верхнего удара
+        if self.left and self.animCount == 1:  # смещение на 35 пикселей из за отрисовки с верхнего левого угла
             self.rect.x -= 35
         self.image, self.animCount = self.ninjahh.otris(False, 30, self.animCount)
-        if self.animCount >= 20 or self.sitt:
+        if self.animCount >= 20 or self.sitt:  # когда закончить анимацию
             self.handhigh = False
             self.ydar = False
             if self.left:
                 self.rect.x += 35
             self.ninja_stay()
-        self.chastici('hh')
+        self.chastici('hh')  # обработка попадания и вылетающие частици
 
     def ninja_sithandmedium(self):
-        if self.left and self.animCount == 1:
+        # отрисовка удара в присяди
+        if self.left and self.animCount == 1:  # смещение на 35 пикселей из за отрисовки с верхнего левого угла
             self.rect.x -= 35
         self.image, self.animCount = self.ninjasithandmedium.otris(False, 30, self.animCount)
         if self.animCount >= 20:
@@ -277,9 +361,10 @@ class G_Player(pygame.sprite.Sprite):
             if self.left:
                 self.rect.x += 35
             self.ninja_sit()
-        self.chastici('shm')
+        self.chastici('shm')  # обработка попадания и вылетающие частици
 
     def ninja_stay(self):
+        # отрисовка того как стоит персонаж
         self.animCount = 0
         self.image, self.animCount = self.ninjastay.otris(False, 30, self.animCount)
         self.animCount = 0
@@ -350,7 +435,7 @@ class G_Player(pygame.sprite.Sprite):
         self.ninja_stay()
 
     def update(self):
-        global col, otkat, stop
+        global col, stop_game, stop, event
         if self.rect.x < 0:
             self.rect.x = 0
         if self.rect.x + 70 > 700:
@@ -400,7 +485,9 @@ class G_Player(pygame.sprite.Sprite):
 
 
 if __name__ == '__main__':
+    pygame.display.set_caption('Мордобилити')
     running = True
+    start_screen()
     player1, player2 = G_Player((x1, y1), False), G_Player((x2, y2), True)
     player1.set_protivnik(player2)
     player2.set_protivnik(player1)
@@ -409,6 +496,11 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    stop_game = not (stop_game)
+        if stop_game:
+            continue
         if player1.healts <= 0:
             stop = True
             win_round2 += 1
@@ -420,15 +512,16 @@ if __name__ == '__main__':
             player2.start_fight((x2, y2), True), player1.start_fight((x1, y1), False)
         else:
             if win_round2 == 2:
-                print('lose')
+                end('lose.jpg')
                 running = False
             if win_round1 == 2:
-                print('won')
+                end('win.jpg')
                 running = False
         player2.A_I()
         all_sprites.update()
         screen.blit(fon, (0, 0))
         all_sprites.draw(screen)
+        pygame.draw.rect(screen, 'red', (player1.rect.x, height - 3, 50, 4))
         pygame.draw.rect(screen, 'black', (15, 47, 20, 20), 2)
         pygame.draw.rect(screen, 'black', (40, 47, 20, 20), 2)
         pygame.draw.rect(screen, 'black', (700 - 30, 47, 20, 20), 2)
@@ -438,9 +531,11 @@ if __name__ == '__main__':
         for j in range(win_round2):
             pygame.draw.rect(screen, 'white', (700 - 30 * (j + 1), 47, 20, 20))
             pygame.draw.rect(screen, 'black', (700 - 30 * (j + 1), 47, 20, 20), 2)
-        pygame.draw.rect(screen, 'green', (10, 10, player1.healts * 0 if player1.healts < 0 else player1.healts * 3, 30))
+        pygame.draw.rect(screen, 'red',
+                         (10, 10, player1.healts * 0 if player1.healts < 0 else player1.healts * 3, 30))
         pygame.draw.rect(screen, 'black', (10, 10, 300, 30), 5)
-        pygame.draw.rect(screen, 'green', (390, 10, player2.healts * 0 if player2.healts < 0 else player2.healts * 3, 30))
+        pygame.draw.rect(screen, 'red',
+                         (390, 10, player2.healts * 0 if player2.healts < 0 else player2.healts * 3, 30))
         pygame.draw.rect(screen, 'black', (390, 10, 300, 30), 5)
         font = pygame.font.Font(None, 50)
         text_coord = 0
