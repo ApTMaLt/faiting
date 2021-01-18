@@ -22,6 +22,7 @@ lose = pygame.mixer.Sound('data\lose.mp3')
 pygame.mixer.music.load('data\music_bitva.mp3')
 pygame.mixer.music.play(-1, 0.0)
 stop_game = False
+rejim_game = 1
 
 
 def terminate():
@@ -33,6 +34,7 @@ def start_screen():
     global event, rejim_game
     intro_text = ["- Файтинг -", "", '',
                   "- Один игрок", '',
+                  '- Два игрока', '',
                   "- Выход"]
     main_fon = pygame.transform.scale(load_image('main_fon.jpg'), (width, height))
     screen.blit(main_fon, (0, 0))
@@ -53,8 +55,12 @@ def start_screen():
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if 290 < pygame.mouse.get_pos()[0] < 430 and 140 < pygame.mouse.get_pos()[1] < 170:
+                    rejim_game = 1
                     return
                 elif 290 < pygame.mouse.get_pos()[0] < 430 and 205 < pygame.mouse.get_pos()[1] < 235:
+                    rejim_game = 2
+                    return
+                elif 290 < pygame.mouse.get_pos()[0] < 430 and 265 < pygame.mouse.get_pos()[1] < 300:
                     terminate()
         pygame.display.flip()
         clock.tick(50)
@@ -202,7 +208,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 class G_Player(pygame.sprite.Sprite):
     imagestay = load_image('stay.png')
-    tipi_ydarov = {'hm': '7', 'hh': '10', 'shm': '5'}
+    tipi_ydarov = {'hm': '7', 'hh': '10', 'shm': '8'}
 
     def __init__(self, pos, left):
         super().__init__(all_sprites)
@@ -279,8 +285,6 @@ class G_Player(pygame.sprite.Sprite):
                 elif 40 >= player1.rect.x - self.rect.x > 0 and self.posledni_deistvia.count('hm') != 3:
                     player2.player_handmedium()
                     self.posledni_deistvia.append('hm')
-        else:
-            player2.otkat -= 1
 
     def ninja_deafened(self):
         #  отрисовка анимации стана
@@ -300,14 +304,15 @@ class G_Player(pygame.sprite.Sprite):
         else:
             self.rect = self.rect.move(5, 0)
         #  проверка на то кто находится с лева а кто справа и обменивает их анимации
-        if player1.rect.x > player2.rect.x and player1.left is False and player2.left is True and not player1.jump:
-            player1.left = True
-            player2.left = False
-            self.obmen()
-        if player1.rect.x < player2.rect.x and player1.left is True and player2.left is False and not player1.jump:
-            player1.left = False
-            player2.left = True
-            self.obmen()
+        if not self.protivnik.jump:
+            if player1.rect.x > player2.rect.x and player1.left is False and player2.left is True and not player1.jump:
+                player1.left = True
+                player2.left = False
+                self.obmen()
+            if player1.rect.x < player2.rect.x and player1.left is True and player2.left is False and not player1.jump:
+                player1.left = False
+                player2.left = True
+                self.obmen()
 
     def ninja_handmedium(self):
         #  отрисовка анимации среднего удара
@@ -332,9 +337,10 @@ class G_Player(pygame.sprite.Sprite):
                 ydvaenie = 2
             self.ydar = True
             self.protivnik.healts -= int(self.tipi_ydarov[tip_ydara]) * ydvaenie  # нанесение урона
-            self.protivnik.deafened = True
             zvyk_ydara.play()
-            self.protivnik.ninja_deafened()  # противник в стане
+            if not self.protivnik.jump:
+                self.protivnik.ninja_deafened()  # противник в стане
+                self.protivnik.deafened = True
 
     def ninja_handmhigh(self):
         # отрисовка верхнего удара
@@ -402,6 +408,8 @@ class G_Player(pygame.sprite.Sprite):
 
     def player_jump(self):
         self.animCount = 0
+        self.run1 = False
+        self.run2 = False
         self.jump = True
         self.activnosti = True
         self.otkatjump = 120
@@ -440,43 +448,27 @@ class G_Player(pygame.sprite.Sprite):
             self.rect.x = 0
         if self.rect.x + 70 > 700:
             self.rect.x = 630
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT and not player1.activnosti:
-                player1.ninja_run(True)
-            if event.key == pygame.K_RIGHT and not player1.activnosti:
-                player1.ninja_run(False)
-            if player1.otkat == 0:
-                if event.key == pygame.K_UP and not player1.activnosti and self.otkatjump == 0:
-                    player1.player_jump()
-                if event.key == pygame.K_DOWN and not player1.activnosti:
-                    player1.player_sit()
-                if event.key == pygame.K_KP1 and player1.activnosti and self.sitt and not self.jump or event.key == pygame.K_KP1 and not self.activnosti:
-                    player1.player_handmedium()
-                if event.key == pygame.K_KP3 and not player1.activnosti and not self.sitt:
-                    player1.player_handhigh()
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_LEFT and not player1.activnosti:
-                player1.ninja_stay()
-            if event.key == pygame.K_RIGHT and not player1.activnosti:
-                player1.ninja_stay()
-            if event.key == pygame.K_UP:
-                pass
-            if player1.otkat == 0:
-                if event.key == pygame.K_DOWN:
-                    player1.player_dont_sit()
         if player1.otkat > 0:
             player1.otkat -= 1
         if player1.otkatjump > 0:
             player1.otkatjump -= 1
-        if self.sitt:
+        if player2.otkat > 0:
+            player2.otkat -= 1
+        if player2.otkatjump > 0:
+            player2.otkatjump -= 1
+        if self.run1:
+            self.ninja_run(True)
+        elif self.run2:
+            self.ninja_run(False)
+        elif self.sitt:
             if self.handmedium:
                 self.ninja_sithandmedium()
             else:
                 self.ninja_sit()
         elif self.deafened:
             self.ninja_deafened()
-        elif player1.jump:
-            player1.ninja_jump()
+        elif self.jump:
+            self.ninja_jump()
         elif self.handmedium:
             self.ninja_handmedium()
         elif self.handhigh:
@@ -498,7 +490,64 @@ if __name__ == '__main__':
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    stop_game = not (stop_game)
+                    stop_game = not stop_game
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT and not player1.activnosti:
+                    player1.run1 = True
+                    player1.activnosti = True
+                if event.key == pygame.K_RIGHT and not player1.activnosti:
+                    player1.run2 = True
+                    player1.activnosti = True
+                if player1.otkat == 0:
+                    if event.key == pygame.K_UP and not player1.activnosti and player1.otkatjump == 0:
+                        player1.player_jump()
+                    if event.key == pygame.K_DOWN and not player1.activnosti:
+                        player1.player_sit()
+                    if event.key == pygame.K_KP1 and player1.activnosti and player1.sitt and not player1.jump or event.key == pygame.K_KP1 and not player1.activnosti:
+                        player1.player_handmedium()
+                    if event.key == pygame.K_KP3 and not player1.activnosti and not player1.sitt:
+                        player1.player_handhigh()
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_LEFT:
+                    player1.run1 = False
+                    if not player1.jump and not player1.sitt and not player1.handmedium and not player1.handhigh and not player1.deafened:
+                        player1.ninja_stay()
+                if event.key == pygame.K_RIGHT:
+                    player1.run2 = False
+                    if not player1.jump and not player1.sitt and not player1.handmedium and not player1.handhigh and not player1.deafened:
+                        player1.ninja_stay()
+                if player1.otkat == 0:
+                    if event.key == pygame.K_DOWN:
+                        player1.player_dont_sit()
+            if rejim_game == 2:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a and not player2.activnosti:
+                        player2.run1 = True
+                        player2.activnosti = True
+                    if event.key == pygame.K_d and not player2.activnosti:
+                        player2.run2 = True
+                        player2.activnosti = True
+                    if player2.otkat == 0:
+                        if event.key == pygame.K_w and not player2.activnosti and player2.otkatjump == 0:
+                            player2.player_jump()
+                        if event.key == pygame.K_s and not player2.activnosti:
+                            player2.player_sit()
+                        if event.key == pygame.K_h and player2.activnosti and player2.sitt and not player2.jump or event.key == pygame.K_h and not player2.activnosti:
+                            player2.player_handmedium()
+                        if event.key == pygame.K_j and not player2.activnosti and not player2.sitt:
+                            player2.player_handhigh()
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_a:
+                        player2.run1 = False
+                        if not player2.jump and not player2.sitt and not player2.handmedium and not player2.handhigh and not player2.deafened:
+                            player2.ninja_stay()
+                    if event.key == pygame.K_d:
+                        player2.run2 = False
+                        if not player2.jump and not player2.sitt and not player2.handmedium and not player2.handhigh and not player2.deafened:
+                            player2.ninja_stay()
+                    if player2.otkat == 0:
+                        if event.key == pygame.K_s:
+                            player2.player_dont_sit()
         if stop_game:
             continue
         if player1.healts <= 0:
@@ -517,7 +566,8 @@ if __name__ == '__main__':
             if win_round1 == 2:
                 end('win.jpg')
                 running = False
-        player2.A_I()
+        if rejim_game == 1:
+            player2.A_I()
         all_sprites.update()
         screen.blit(fon, (0, 0))
         all_sprites.draw(screen)
