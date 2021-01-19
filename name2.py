@@ -95,6 +95,28 @@ def end(image):
         clock.tick(30)
 
 
+def end2(win):
+    screen.fill((0, 0, 0))
+    font = pygame.font.Font(None, 100)
+    text_coord = 75
+    string_rendered = font.render('Player ' + str(win) + ' WIN', 1, pygame.Color('white'))
+    intro_rect = string_rendered.get_rect()
+    intro_rect.top = text_coord
+    intro_rect.x = 140
+    text_coord += intro_rect.height
+    screen.blit(string_rendered, intro_rect)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                start_screen()
+        pygame.display.flip()
+        clock.tick(30)
+
+
 def povorot(name, r):
     if r:
         return pygame.transform.flip(load_image(name), True, False)
@@ -225,7 +247,7 @@ class G_Player(pygame.sprite.Sprite):
         self.animCount = 0
         self.posledni_deistvia = []
         self.ydar = False
-        self.healts = 100
+        self.healts = 7
         self.run1, self.run2, self.handhigh, self.handmedium, self.runA_I, self.sitt, self.handmediumA_I, self.jump, \
         self.activnosti, self.deafened = False, False, False, False, False, False, False, False, False, False
         self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, \
@@ -241,7 +263,7 @@ class G_Player(pygame.sprite.Sprite):
         self.activnosti, self.deafened = False, False, False, False, False, False, False, False, False, False
         self.animCount = 0
         self.ydar = False
-        self.healts = 100
+        self.healts = 7
         self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, \
         self.ninjajump, self.ninjadeafened = razvorot(self.left)
 
@@ -262,15 +284,15 @@ class G_Player(pygame.sprite.Sprite):
         if len(self.posledni_deistvia) > 4:
             self.posledni_deistvia.pop(0)
         if player2.otkat - 5 <= 0:
+            # исскуственный интелкт бота для передвижения
             if player1.rect.x + 10 < player2.rect.x:
-                pass
                 player2.ninja_run(True)
             elif player1.rect.x - 10 > player2.rect.x:
                 player2.ninja_run(False)
             else:
                 player2.ninja_stay()
         if player2.otkat == 0:
-            # исскуственный интелкт бота
+            # исскуственный интелкт бота для выбора удара
             if self.left:
                 if 20 >= self.rect.x - player1.rect.x > 0 and self.posledni_deistvia.count('hh') != 3:
                     player2.player_handhigh()
@@ -290,9 +312,9 @@ class G_Player(pygame.sprite.Sprite):
         #  отрисовка анимации стана
         self.handhigh, self.handmedium, self.jump = False, False, False
         self.image, self.animCount = self.ninjadeafened.otris(False, 30, self.animCount)
-        if self.animCount == 4:
+        if self.animCount == 4:  # после получения урона персонажа отбрасывает
             self.rect = self.rect.move(40 * - 1 if not self.left else 40, 0)
-        if self.animCount >= 6:
+        if self.animCount >= 6:  # конец анимации
             self.deafened = False
             self.ninja_stay()
 
@@ -316,15 +338,15 @@ class G_Player(pygame.sprite.Sprite):
 
     def ninja_handmedium(self):
         #  отрисовка анимации среднего удара
-        if self.left and self.animCount == 1:
+        if self.left and self.animCount == 1:  # смещение на 35 пикселей из за отрисовки с верхнего левого угла
             self.rect.x -= 35
         self.image, self.animCount = self.ninjahm.otris(False, 30, self.animCount)
         #  когда закончить анимацию
-        if self.animCount >= 20:
+        if self.animCount >= 20:   # конец анимации
             self.handmedium = False
             self.ydar = False
             if self.left:
-                self.rect.x += 35
+                self.rect.x += 35  # возвращение на 35 пикселей назад
             self.ninja_stay()
         self.chastici('hm')  # обработка попадания и вылетающие частици
 
@@ -350,7 +372,7 @@ class G_Player(pygame.sprite.Sprite):
         if self.animCount >= 20 or self.sitt:  # когда закончить анимацию
             self.handhigh = False
             self.ydar = False
-            if self.left:
+            if self.left:  # возвращение на 35 пикселей назад
                 self.rect.x += 35
             self.ninja_stay()
         self.chastici('hh')  # обработка попадания и вылетающие частици
@@ -360,11 +382,11 @@ class G_Player(pygame.sprite.Sprite):
         if self.left and self.animCount == 1:  # смещение на 35 пикселей из за отрисовки с верхнего левого угла
             self.rect.x -= 35
         self.image, self.animCount = self.ninjasithandmedium.otris(False, 30, self.animCount)
-        if self.animCount >= 20:
+        if self.animCount >= 20:  # конец анимации
             self.handmedium = False
             self.sitt = True
             self.ydar = False
-            if self.left:
+            if self.left:  # возвращение на 35 пикселей назад
                 self.rect.x += 35
             self.ninja_sit()
         self.chastici('shm')  # обработка попадания и вылетающие частици
@@ -377,25 +399,28 @@ class G_Player(pygame.sprite.Sprite):
         self.activnosti = False
 
     def ninja_sit(self):
+        # отрисовка того как сидит персонаж
         self.activnosti = True
         self.image, self.animCount = self.ninjasit.otris(False, 30, self.animCount)
         self.activnosti = True
 
     def ninja_jump(self):
-        if self.left:
+        # отрисовка того как прыгает персонаж
+        if self.left:  # зависимость полёта от положения противника
             self.rect = self.rect.move(-10, 0)
             self.image, self.animCount = self.ninjajump.otris(True, 6, self.animCount)
         else:
             self.rect = self.rect.move(10, 0)
             self.image, self.animCount = self.ninjajump.otris(False, 6, self.animCount)
-        if self.animCount // 5 in [1, 2]:
+        if self.animCount // 5 in [1, 2]:  # подъём на 20 пикселей во 2 и 3 кадре анимации
             self.rect = self.rect.move(0, -10)
-        if self.animCount // 5 in [3, 4]:
+        if self.animCount // 5 in [3, 4]:   # спуск обратно на 20 пикселей в 4 и 5 кадре анимации
             self.rect = self.rect.move(0, 10)
-        if self.animCount + 1 >= 30:
+        if self.animCount + 1 >= 30:  # конец анимации
             self.jump = False
             self.animCount = 0
             self.ninja_stay()
+            #  проверка на то кто находится с лева а кто справа и обменивает их анимации
             if player1.rect.x > player2.rect.x and player1.left is False and player2.left is True:
                 player1.left = True
                 player2.left = False
@@ -408,17 +433,13 @@ class G_Player(pygame.sprite.Sprite):
 
     def player_jump(self):
         self.animCount = 0
-        self.run1 = False
-        self.run2 = False
         self.jump = True
         self.activnosti = True
         self.otkatjump = 120
         self.otkat = 50
 
     def player_sit(self):
-        self.handhigh = False
         self.sitt = True
-        self.jump = False
         self.activnosti = True
         self.otkat = 30
         self.ninja_sit()
@@ -437,17 +458,15 @@ class G_Player(pygame.sprite.Sprite):
 
     def player_dont_sit(self):
         self.sitt = False
-        self.jump = False
-        self.handhigh = False
-        self.activnosti = False
         self.ninja_stay()
 
     def update(self):
         global col, stop_game, stop, event
-        if self.rect.x < 0:
+        if self.rect.x < 0:  # концы экрана
             self.rect.x = 0
-        if self.rect.x + 70 > 700:
+        if self.rect.x + 70 > 700:  # концы экрана
             self.rect.x = 630
+        # уменьшение отката
         if player1.otkat > 0:
             player1.otkat -= 1
         if player1.otkatjump > 0:
@@ -456,6 +475,7 @@ class G_Player(pygame.sprite.Sprite):
             player2.otkat -= 1
         if player2.otkatjump > 0:
             player2.otkatjump -= 1
+        # выполнение действий
         if self.run1:
             self.ninja_run(True)
         elif self.run2:
@@ -473,6 +493,7 @@ class G_Player(pygame.sprite.Sprite):
             self.ninja_handmedium()
         elif self.handhigh:
             self.ninja_handmhigh()
+        # генерация маски спрайта
         self.mask = pygame.mask.from_surface(self.image)
 
 
@@ -480,32 +501,31 @@ if __name__ == '__main__':
     pygame.display.set_caption('Мордобилити')
     running = True
     start_screen()
-    player1, player2 = G_Player((x1, y1), False), G_Player((x2, y2), True)
-    player1.set_protivnik(player2)
-    player2.set_protivnik(player1)
+    player1, player2 = G_Player((x1, y1), False), G_Player((x2, y2), True)  # создание игроков
+    player1.protivnik, player2.protivnik = player2, player1  # инициализация противника
     fon = pygame.transform.scale(load_image('fon.jpg'), (width, height))
     while running:
-        for event in pygame.event.get():
+        for event in pygame.event.get():  # обработка нажатий
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     stop_game = not stop_game
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT and not player1.activnosti:
+                if event.key == pygame.K_LEFT and not player1.activnosti and not stop_game:
                     player1.run1 = True
                     player1.activnosti = True
-                if event.key == pygame.K_RIGHT and not player1.activnosti:
+                if event.key == pygame.K_RIGHT and not player1.activnosti and not stop_game:
                     player1.run2 = True
                     player1.activnosti = True
                 if player1.otkat == 0:
-                    if event.key == pygame.K_UP and not player1.activnosti and player1.otkatjump == 0:
+                    if event.key == pygame.K_UP and not player1.activnosti and player1.otkatjump == 0 and not stop_game:
                         player1.player_jump()
                     if event.key == pygame.K_DOWN and not player1.activnosti:
                         player1.player_sit()
-                    if event.key == pygame.K_KP1 and player1.activnosti and player1.sitt and not player1.jump or event.key == pygame.K_KP1 and not player1.activnosti:
+                    if event.key == pygame.K_KP1 and player1.activnosti and player1.sitt and not player1.jump or event.key == pygame.K_KP1 and not player1.activnosti and not stop_game:
                         player1.player_handmedium()
-                    if event.key == pygame.K_KP3 and not player1.activnosti and not player1.sitt:
+                    if event.key == pygame.K_KP3 and not player1.activnosti and not player1.sitt and not stop_game:
                         player1.player_handhigh()
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT:
@@ -521,20 +541,20 @@ if __name__ == '__main__':
                         player1.player_dont_sit()
             if rejim_game == 2:
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_a and not player2.activnosti:
+                    if event.key == pygame.K_a and not player2.activnosti and not stop_game:
                         player2.run1 = True
                         player2.activnosti = True
-                    if event.key == pygame.K_d and not player2.activnosti:
+                    if event.key == pygame.K_d and not player2.activnosti and not stop_game:
                         player2.run2 = True
                         player2.activnosti = True
                     if player2.otkat == 0:
-                        if event.key == pygame.K_w and not player2.activnosti and player2.otkatjump == 0:
+                        if event.key == pygame.K_w and not player2.activnosti and player2.otkatjump == 0 and not stop_game:
                             player2.player_jump()
                         if event.key == pygame.K_s and not player2.activnosti:
                             player2.player_sit()
-                        if event.key == pygame.K_h and player2.activnosti and player2.sitt and not player2.jump or event.key == pygame.K_h and not player2.activnosti:
+                        if event.key == pygame.K_h and player2.activnosti and player2.sitt and not player2.jump or event.key == pygame.K_h and not player2.activnosti and not stop_game:
                             player2.player_handmedium()
-                        if event.key == pygame.K_j and not player2.activnosti and not player2.sitt:
+                        if event.key == pygame.K_j and not player2.activnosti and not player2.sitt and not stop_game:
                             player2.player_handhigh()
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_a:
@@ -548,50 +568,58 @@ if __name__ == '__main__':
                     if player2.otkat == 0:
                         if event.key == pygame.K_s:
                             player2.player_dont_sit()
-        if stop_game:
+        if stop_game:  # игра находится на паузе
             continue
-        if player1.healts <= 0:
+        if player1.healts <= 0:  # смерть игрока
             stop = True
             win_round2 += 1
-        if player2.healts <= 0:
+        if player2.healts <= 0:  # смерть игрока
             stop = True
             win_round1 += 1
         if stop and win_round1 != 2 and win_round2 != 2:
             stop = False
-            player2.start_fight((x2, y2), True), player1.start_fight((x1, y1), False)
+            player2.start_fight((x2, y2), True), player1.start_fight((x1, y1), False)  # запуск нового раунда
         else:
-            if win_round2 == 2:
-                end('lose.jpg')
+            if win_round2 == 2:  # завершающие экраны
+                if rejim_game == 2:
+                    end2(2)
+                else:
+                    end('lose.jpg')
                 running = False
             if win_round1 == 2:
-                end('win.jpg')
+                if rejim_game == 2:
+                    end2(1)
+                else:
+                    end('win.jpg')
                 running = False
-        if rejim_game == 1:
+        if rejim_game == 1:  # включение бота
             player2.A_I()
         all_sprites.update()
         screen.blit(fon, (0, 0))
         all_sprites.draw(screen)
-        pygame.draw.rect(screen, 'red', (player1.rect.x, height - 3, 50, 4))
+        pygame.draw.rect(screen, 'red', (player1.rect.x, height - 3, 50, 4))  # отрисовка полосок под персонажами
+        if rejim_game == 2:
+            pygame.draw.rect(screen, 'blue', (player2.rect.x, height - 3, 50, 4))  # отрисовка полосок под персонажами
+        # отрисовка ячеек для выйгранных раундов
         pygame.draw.rect(screen, 'black', (15, 47, 20, 20), 2)
         pygame.draw.rect(screen, 'black', (40, 47, 20, 20), 2)
-        pygame.draw.rect(screen, 'black', (700 - 30, 47, 20, 20), 2)
-        pygame.draw.rect(screen, 'black', (700 - 55, 47, 20, 20), 2)
+        pygame.draw.rect(screen, 'black', (670, 47, 20, 20), 2)
+        pygame.draw.rect(screen, 'black', (645, 47, 20, 20), 2)
         for i in range(win_round1):
-            pygame.draw.rect(screen, 'white', (15 * (i + 1), 47, 20, 20))
+            pygame.draw.rect(screen, 'white', (15 * (i + 1), 47, 20, 20))  # заполнение ячеек для выйгранных раундов
         for j in range(win_round2):
-            pygame.draw.rect(screen, 'white', (700 - 30 * (j + 1), 47, 20, 20))
-            pygame.draw.rect(screen, 'black', (700 - 30 * (j + 1), 47, 20, 20), 2)
+            pygame.draw.rect(screen, 'white', (700 - 30 * (j + 1), 47, 20, 20))  # заполнение ячеек для выйгранных раундов
         pygame.draw.rect(screen, 'red',
-                         (10, 10, player1.healts * 0 if player1.healts < 0 else player1.healts * 3, 30))
-        pygame.draw.rect(screen, 'black', (10, 10, 300, 30), 5)
+                         (10, 10, player1.healts * 0 if player1.healts < 0 else player1.healts * 3, 30))  # полоска здоровья
+        pygame.draw.rect(screen, 'black', (10, 10, 300, 30), 5)  # черная оконтовка для полоски здоровья
         pygame.draw.rect(screen, 'red',
-                         (390, 10, player2.healts * 0 if player2.healts < 0 else player2.healts * 3, 30))
-        pygame.draw.rect(screen, 'black', (390, 10, 300, 30), 5)
+                         (390, 10, player2.healts * 0 if player2.healts < 0 else player2.healts * 3, 30))  # полоска здоровья
+        pygame.draw.rect(screen, 'black', (390, 10, 300, 30), 5)  # черная оконтовка для полоски здоровья
+        # количество раундов
         font = pygame.font.Font(None, 50)
-        text_coord = 0
+        text_coord = 10
         string_rendered = font.render(str(win_round1 + win_round2 + 1), 1, pygame.Color('black'))
         intro_rect = string_rendered.get_rect()
-        text_coord += 10
         intro_rect.top = text_coord
         intro_rect.x = 345
         text_coord += intro_rect.height
