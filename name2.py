@@ -86,7 +86,10 @@ def end(image):
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return
         screen.fill("black")
         all_sprites.draw(screen)
         if sprite.rect.x < 0:
@@ -112,7 +115,7 @@ def end2(win):
                 terminate()
             elif event.type == pygame.KEYDOWN or \
                     event.type == pygame.MOUSEBUTTONDOWN:
-                start_screen()
+                return
         pygame.display.flip()
         clock.tick(30)
 
@@ -275,10 +278,6 @@ class G_Player(pygame.sprite.Sprite):
                                                                                                                   player2.ninjastay, player2.ninjahm, player2.ninjahh, player2.ninjasit, player2.ninjasithandmedium, \
                                                                                                                   player2.ninjajump, player2.ninjadeafened, player1.ninjarun, player1.ninjastay, player1.ninjahm, player1.ninjahh, player1.ninjasit, \
                                                                                                                   player1.ninjasithandmedium, player1.ninjajump, player1.ninjadeafened
-
-    def set_protivnik(self, protivnik):
-        # инициализирует противников
-        self.protivnik = protivnik
 
     def A_I(self):
         if len(self.posledni_deistvia) > 4:
@@ -581,17 +580,25 @@ if __name__ == '__main__':
             player2.start_fight((x2, y2), True), player1.start_fight((x1, y1), False)  # запуск нового раунда
         else:
             if win_round2 == 2:  # завершающие экраны
+                win_round2, win_round1 = 0, 0
                 if rejim_game == 2:
                     end2(2)
                 else:
                     end('lose.jpg')
-                running = False
+                    pg.mixer.music.set_volume(1)
+                start_screen()
+                player2.start_fight((x2, y2), True), player1.start_fight((x1, y1), False)  # запуск нового раунда
+                continue
             if win_round1 == 2:
+                win_round2, win_round1 = 0, 0
                 if rejim_game == 2:
                     end2(1)
                 else:
                     end('win.jpg')
-                running = False
+                    pg.mixer.music.set_volume(1)
+                start_screen()
+                player2.start_fight((x2, y2), True), player1.start_fight((x1, y1), False)  # запуск нового раунда
+                continue
         if rejim_game == 1:  # включение бота
             player2.A_I()
         all_sprites.update()
@@ -609,11 +616,9 @@ if __name__ == '__main__':
             pygame.draw.rect(screen, 'white', (15 * (i + 1), 47, 20, 20))  # заполнение ячеек для выйгранных раундов
         for j in range(win_round2):
             pygame.draw.rect(screen, 'white', (700 - 30 * (j + 1), 47, 20, 20))  # заполнение ячеек для выйгранных раундов
-        pygame.draw.rect(screen, 'red',
-                         (10, 10, player1.healts * 0 if player1.healts < 0 else player1.healts * 3, 30))  # полоска здоровья
+        pygame.draw.rect(screen, 'red', (10, 10, player1.healts * 0 if player1.healts < 0 else player1.healts * 3, 30))  # полоска здоровья
         pygame.draw.rect(screen, 'black', (10, 10, 300, 30), 5)  # черная оконтовка для полоски здоровья
-        pygame.draw.rect(screen, 'red',
-                         (390, 10, player2.healts * 0 if player2.healts < 0 else player2.healts * 3, 30))  # полоска здоровья
+        pygame.draw.rect(screen, 'red', (390, 10, player2.healts * 0 if player2.healts < 0 else player2.healts * 3, 30))  # полоска здоровья
         pygame.draw.rect(screen, 'black', (390, 10, 300, 30), 5)  # черная оконтовка для полоски здоровья
         # количество раундов
         font = pygame.font.Font(None, 50)
