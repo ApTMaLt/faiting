@@ -88,7 +88,7 @@ def end(image):
             if event.type == pygame.QUIT:
                 terminate()
             elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
+                    event.type == pygame.MOUSEBUTTONDOWN and sprite.rect.x >= 0:
                 return
         screen.fill("black")
         all_sprites.draw(screen)
@@ -108,14 +108,15 @@ def end2(win):
     intro_rect.x = 140
     text_coord += intro_rect.height
     screen.blit(string_rendered, intro_rect)
-
+    sec = 0
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pygame.KEYDOWN and sec // 30 >= 5 or \
+                    event.type == pygame.MOUSEBUTTONDOWN and sec // 30 >= 5:
                 return
+        sec += 1
         pygame.display.flip()
         clock.tick(30)
 
@@ -250,7 +251,7 @@ class G_Player(pygame.sprite.Sprite):
         self.animCount = 0
         self.posledni_deistvia = []
         self.ydar = False
-        self.healts = 7
+        self.healts = 100
         self.run1, self.run2, self.handhigh, self.handmedium, self.runA_I, self.sitt, self.handmediumA_I, self.jump, \
         self.activnosti, self.deafened = False, False, False, False, False, False, False, False, False, False
         self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, \
@@ -266,7 +267,7 @@ class G_Player(pygame.sprite.Sprite):
         self.activnosti, self.deafened = False, False, False, False, False, False, False, False, False, False
         self.animCount = 0
         self.ydar = False
-        self.healts = 7
+        self.healts = 100
         self.ninjarun, self.ninjastay, self.ninjahm, self.ninjahh, self.ninjasit, self.ninjasithandmedium, \
         self.ninjajump, self.ninjadeafened = razvorot(self.left)
 
@@ -475,11 +476,7 @@ class G_Player(pygame.sprite.Sprite):
         if player2.otkatjump > 0:
             player2.otkatjump -= 1
         # выполнение действий
-        if self.run1:
-            self.ninja_run(True)
-        elif self.run2:
-            self.ninja_run(False)
-        elif self.sitt:
+        if self.sitt:
             if self.handmedium:
                 self.ninja_sithandmedium()
             else:
@@ -492,6 +489,10 @@ class G_Player(pygame.sprite.Sprite):
             self.ninja_handmedium()
         elif self.handhigh:
             self.ninja_handmhigh()
+        elif self.run1:
+            self.ninja_run(True)
+        elif self.run2:
+            self.ninja_run(False)
         # генерация маски спрайта
         self.mask = pygame.mask.from_surface(self.image)
 
@@ -506,7 +507,7 @@ if __name__ == '__main__':
     while running:
         for event in pygame.event.get():  # обработка нажатий
             if event.type == pygame.QUIT:
-                running = False
+                terminate()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     stop_game = not stop_game
