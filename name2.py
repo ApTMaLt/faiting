@@ -87,7 +87,7 @@ def end(image):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.KEYDOWN or \
+            elif event.type == pygame.KEYDOWN and sprite.rect.x >= 0 or \
                     event.type == pygame.MOUSEBUTTONDOWN and sprite.rect.x >= 0:
                 return
         screen.fill("black")
